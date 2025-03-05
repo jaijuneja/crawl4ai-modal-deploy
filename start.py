@@ -1,8 +1,7 @@
 import modal
-import logging
 import aiohttp
 from urllib.parse import urlparse
-    
+
 # Install the necessary dependencies as custom container image which we will pass to our functions
 crawler = modal.Image.debian_slim(python_version="3.10").pip_install_from_requirements("requirements.txt").run_commands(
     "apt-get update",
@@ -27,8 +26,7 @@ import os
 
 # Initialize Modal app and logger
 app = modal.App("crawler")
-secret = modal.Secret.from_name("crawler-auth-secret")
-logger = logging.getLogger(__name__)
+secret_key = modal.Secret.from_name("crawler-auth-secret")  # Secret key for crawler auth
 
 class CrawlRequest(BaseModel):
     url: str
@@ -68,31 +66,21 @@ async def is_pdf_url(url: str) -> bool:
                 content_type = response.headers.get('Content-Type', '').lower()
                 return 'application/pdf' in content_type
     except Exception as e:
-        logger.warning(f"Failed to check content type for URL: {url}", extra={
-            "error": str(e),
-            "error_type": type(e).__name__
-        })
         # Fall back to URL pattern check only
         return False
 
-@app.function(image=crawler, secrets=[secret])
+@app.function(image=crawler, secrets=[secret_key])
 @modal.web_endpoint(method="POST", docs=True)
 async def crawl(request: CrawlRequest, authorization: str = Header(...)):
     """Main crawl function to be executed in Modal container"""
     # Validate token before processing request
     payload = validate_token(authorization)
     
-    logger.info("Crawl request received", extra={
-        "client_id": payload["client_id"],
-        "url": request.url,
-        "bypass_cache": request.bypass_cache
-    })
-
     is_pdf = False
     if request.autoparse_pdf:
         is_pdf = await is_pdf_url(request.url)
 
-    async with AsyncWebCrawler(verbose=True, crawler_strategy=PDFCrawlerStrategy() if is_pdf else None) as crawler:
+    async with AsyncWebCrawler(verbose=False, crawler_strategy=PDFCrawlerStrategy() if is_pdf else None) as crawler:
         crawl_kwargs = request.model_dump(exclude_unset=True)
         try:
             result = await crawler.arun(
@@ -101,22 +89,8 @@ async def crawl(request: CrawlRequest, authorization: str = Header(...)):
                     scraping_strategy=PDFContentScrapingStrategy()
                 ) if is_pdf else None
             )
-            logger.info("Crawl completed successfully", extra={
-                "url": request.url,
-                "client_id": payload["client_id"],
-                "autoparse_pdf": request.autoparse_pdf,
-                "is_pdf": is_pdf
-            })
             return result
 
         except Exception as e:
-            logger.error("Crawl failed", extra={
-                "url": request.url,
-                "client_id": payload["client_id"],
-                "autoparse_pdf": request.autoparse_pdf,
-                "is_pdf": is_pdf,
-                "error": str(e),
-                "error_type": type(e).__name__,
-            })
             return {"error": f"Error during crawling: {str(e)}"}
         
