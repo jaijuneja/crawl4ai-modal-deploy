@@ -1,0 +1,7 @@
+crawl4ai
+asyncio
+playwright
+fastapi[standard]
+pydantic
+PyJWT
+python-dotenv
