@@ -14,7 +14,7 @@ This implementation deploys the crawl endpoint and uses a Bearer token in the he
 2. Clone this repo
 3. Inside the repo run:
     ```
-    pip install -r requirements.txt
+    pip install modal
     python3 -m modal setup
     ```
     This will authorize your account on your local machine.
@@ -53,7 +53,8 @@ BEARER_TOKEN = "<your_bearer_token>"
 
 payload = {
     "url": "https://example.com",
-    "bypass_cache": False
+    "bypass_cache": False,
+    "autoparse_pdf": False
 }
 
 headers = {
@@ -69,6 +70,12 @@ if response.ok:
 else:
     print(f"Error: {response.status_code} - {response.text}")
 ```
+
+## PDF Parsing
+
+As of Crawl4AI v0.5.0, the crawler supports parsing of PDF content by invoking the `PDFCrawlerStrategy`.
+
+We have added an optional field to the request payload called `autoparse_pdf`. When set to `True` the endpoint will check if the URL is a PDF (based on the URL pattern and Content-Type header) and, if so, will apply the `PDFCrawlerStrategy`. `autoparse_pdf` defaults to `False`.
 
 ## Author
 

@@ -4,12 +4,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-ENDPOINT = "<your_modal_endpoint>"
+CRAWLER_ENDPOINT = os.getenv("CRAWLER_ENDPOINT", "<your_modal_endpoint>")
 BEARER_TOKEN = os.getenv("BEARER_TOKEN", "<your_bearer_token>")
 
 payload = {
-    "url": "https://example.com",
-    "bypass_cache": False
+    "url": "https://example.com/",
+    "bypass_cache": False,
+    "autoparse_pdf": False
 }
 
 headers = {
@@ -17,10 +18,10 @@ headers = {
     "Authorization": f"Bearer {BEARER_TOKEN}"
 }
 
-response = requests.post(ENDPOINT, json=payload, headers=headers)
+response = requests.post(CRAWLER_ENDPOINT, json=payload, headers=headers)
 
 if response.ok:
     result = response.json()
-    print(result["markdown"]["raw_markdown"])
+    print(result)
 else:
     print(f"Error: {response.status_code} - {response.text}")

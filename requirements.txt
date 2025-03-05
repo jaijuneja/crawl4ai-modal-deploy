@@ -1,7 +1,8 @@
-crawl4ai
+crawl4ai[pdf]
 asyncio
 playwright
 fastapi[standard]
 pydantic
 PyJWT
 python-dotenv
+aiohttp
