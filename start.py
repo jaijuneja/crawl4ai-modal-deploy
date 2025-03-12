@@ -80,14 +80,20 @@ async def crawl(request: CrawlRequest, authorization: str = Header(...)):
     if request.autoparse_pdf:
         is_pdf = await is_pdf_url(request.url)
 
+    # 'Magic' antibot settings set to True by default, and attempts popup handling
+    run_configs = {
+        "magic": True,
+        "remove_overlay_elements": True
+    }
+    if is_pdf:
+        run_configs["scraping_strategy"] = PDFContentScrapingStrategy()
+
     async with AsyncWebCrawler(verbose=False, crawler_strategy=PDFCrawlerStrategy() if is_pdf else None) as crawler:
         crawl_kwargs = request.model_dump(exclude_unset=True)
         try:
             result = await crawler.arun(
                 **crawl_kwargs,
-                config=CrawlerRunConfig(
-                    scraping_strategy=PDFContentScrapingStrategy()
-                ) if is_pdf else None
+                config=CrawlerRunConfig(**run_configs)
             )
             return result
 
